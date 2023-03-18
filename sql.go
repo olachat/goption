@@ -3,6 +3,7 @@ package goption
 import (
 	"database/sql"
 	"database/sql/driver"
+	"fmt"
 	"reflect"
 	"time"
 )
@@ -52,6 +53,30 @@ func (o Option[T]) Value() (driver.Value, error) {
 	}
 
 	tVal := reflect.ValueOf(o.t)
+	switch tVal.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return tVal.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		return int64(tVal.Uint()), nil
+	case reflect.Uint64:
+		u64 := tVal.Uint()
+		if u64 >= 1<<63 {
+			return nil, fmt.Errorf("uint64 values with high bit set are not supported")
+		}
+		return int64(u64), nil
+	case reflect.Float32, reflect.Float64:
+		return tVal.Float(), nil
+	case reflect.Bool:
+		return tVal.Bool(), nil
+	case reflect.Slice:
+		ek := tVal.Type().Elem().Kind()
+		if ek == reflect.Uint8 {
+			return tVal.Bytes(), nil
+		}
+	case reflect.String:
+		return tVal.String(), nil
+	}
+
 	int64Type := reflect.TypeOf(int64(0))
 	if tVal.CanConvert(int64Type) {
 		return tVal.Convert(int64Type).Interface(), nil
