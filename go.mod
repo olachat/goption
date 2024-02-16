@@ -1,4 +1,4 @@
-module github.com/jordan-bonecutter/goption
+module github.com/olachat/goption
 
 go 1.19
 
